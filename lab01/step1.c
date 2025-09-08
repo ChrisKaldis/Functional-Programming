@@ -3,8 +3,15 @@
 void printnchars(int n, char ch);
 
 int main() {
-    printnchars(8, '=');
-    printnchars(22, '!');
+    int n;
+    char ch;
+
+    printf("Give the number of repeats (n):\n");
+    scanf("%d", &n);
+    printf("Give the character (ch) you want to print:\n");
+    scanf(" %c", &ch);
+
+    printnchars(n, ch);
 
     return 0;
 }
