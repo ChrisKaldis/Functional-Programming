@@ -1,17 +1,10 @@
 #include <stdio.h>
 
 void printnchars(int n, char ch);
+void squaren(int n);
 
 int main() {
-    int n;
-    char ch;
-
-    printf("Give the number of repeats (n):\n");
-    scanf("%d", &n);
-    printf("Give the character (ch) you want to print:\n");
-    scanf(" %c", &ch);
-
-    printnchars(n, ch);
+    squaren(3);
 
     return 0;
 }
@@ -24,6 +17,17 @@ void printnchars(int n, char ch) {
         printf("%c", ch);
     }
     printf("\n");
+
+    return;
+}
+
+/* Prints a square with n char length using printnchars func. */
+void squaren(int n) {
+    int i;
+
+    for (i = 0; i < n; ++i) {
+        printnchars(n, '!');
+    }
 
     return;
 }
