@@ -4,18 +4,19 @@
 
 int load(double x[N]);
 int print(const double x[N]);
-double computeprod(const double x[N]);
-int printprod(double product);
+double computeprodsum(const double x[N], double * sum);
+int printprodsum(const double product, const double sum);
 
 
 int main() {
     double data[N];
-    double prod = 1.0;
+    double prod;
+    double sum = 0.0;
 
     load(data);
     print(data);
-    prod = computeprod(data);
-    printprod(prod);
+    prod = computeprodsum(data, &sum);
+    printprodsum(prod, sum);
 
     return 0;
 }
@@ -40,19 +41,21 @@ int print(const double x[N]) {
     return 0;
 }
 
-double computeprod(const double x[N]) {
+double computeprodsum(const double x[N], double * sum) {
     int i;
     double product = 1.0;
 
     for (i = 0; i < N; i++) {
         product *= x[i];
+        *sum += x[i];
     }
 
     return product;
 }
 
-int printprod(double product) {
-    printf("\n The product of the array is:%g\n", product);
+int printprodsum(const double product, const double sum) {
+    printf("\n The product of the array is: %g\n", product);
+    printf("\n The sum of the array is: %g\n", sum);
 
     return 0;
 }
