@@ -1,0 +1,7 @@
+# Ignore the build directory created by the Makefile
+/bin
+
+# Ignore common files from text editors and IDEs
+.vscode/
+*.swp
+*~
