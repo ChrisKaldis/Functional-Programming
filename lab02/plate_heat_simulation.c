@@ -24,17 +24,15 @@
 #define TEMP_RIGHT -5.0
 #define TEMP_INNER 1.0
 
-#define SECONDS 37
-
 #define HEAT_LEVELS 10
+#define THRESHOLD 1.0
 
 void init_plate(double plate[ROWS][COLS]);
 void init_row_plate(
     double plate[ROWS][COLS], int row_index, 
     double left_edge_temp, double inner_temp, double right_edge_temp
 );
-void print_plate(const double plate[ROWS][COLS], int time);
-void calc_temp(double plate[ROWS][COLS]);
+double calc_temp(double plate[ROWS][COLS]);
 void copy_plate(
     const double plate[ROWS][COLS], double copied_plate[ROWS][COLS]
 );
@@ -44,34 +42,47 @@ void normalize_plate(
 void find_min_and_max(
     const double plate[ROWS][COLS], double * max, double * min
 );
-void print_norm_plate(const int norm_plate[ROWS][COLS]);
 void create_histogram(
     const int norm_plate[ROWS][COLS], int histogram[HEAT_LEVELS]
 );
+
+void print_plate(const double plate[ROWS][COLS], int time);
+void print_norm_plate(const int norm_plate[ROWS][COLS]);
 void print_histogram(const int histogram[HEAT_LEVELS]);
+int get_user_timestep(void);
 
 
 int main(void) {
     double plate_temp[ROWS][COLS];
     int norm_plate_temp[ROWS][COLS];
     int histogram[HEAT_LEVELS];
-    int time = 0;
+    double delta_temp;
+    int time_print, time = 0;
 
     init_plate(plate_temp);
+    time_print = get_user_timestep();
+    do {
+        time++;
+        delta_temp = calc_temp(plate_temp);
+        if (time_print == time) {
+            print_plate(plate_temp, time);
+            normalize_plate(plate_temp, norm_plate_temp);
+            print_norm_plate(norm_plate_temp);
+            create_histogram(norm_plate_temp, histogram);
+            print_histogram(histogram);
+        }
+    } while (delta_temp >= THRESHOLD) ;
+    puts("Final State.");
     print_plate(plate_temp, time);
-    for (time = 1; time <= SECONDS; time++) {
-        calc_temp(plate_temp);
-    }
-    print_plate(plate_temp, time);
-    normalize_plate(plate_temp, norm_plate_temp);
-    print_norm_plate(norm_plate_temp);
-    create_histogram(norm_plate_temp, histogram);
-    print_histogram(histogram);
 
     return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Initializes plate's temperatures.
+ */
 void init_plate(double plate[ROWS][COLS]) {
+    /* Calculate corner temperatures as the average of adjacent edges */
     double top_left_edge = (TEMP_LEFT + TEMP_TOP) / 2;
     double top_right_edge = (TEMP_RIGHT + TEMP_TOP) / 2;
     double bottom_left_edge = (TEMP_LEFT + TEMP_BOTTOM) / 2;
@@ -100,6 +111,9 @@ void init_plate(double plate[ROWS][COLS]) {
     return;
 }
 
+/**
+ * @brief Initializes a single row of the plate.
+ */
 void init_row_plate(
     double plate[ROWS][COLS],
     int row_index, 
@@ -109,36 +123,23 @@ void init_row_plate(
 ) {
     int i;
 
-    for (i = 0; i < COLS; i++) {
-        if (i == 0)
-            plate[row_index][i] = left_edge_temp;
-        else if (i == COLS - 1)
-            plate[row_index][i] = right_edge_temp;
-        else
-            plate[row_index][i] = inner_temp;
+    plate[row_index][0] = left_edge_temp;
+    for (i = 1; i < COLS - 1; i++) {
+        plate[row_index][i] = inner_temp;
     }
+    plate[row_index][COLS-1] = right_edge_temp;
 
     return;
 }
 
-void print_plate(const double plate[ROWS][COLS], int time) {
-    int i, j;
-
-    printf(" || Time in seconds: %d ||\n", time);
-    putchar('\n');
-    for (i = 0; i < ROWS; i++) {
-        for (j = 0; j < COLS; j++) {
-            printf("%6.2f ", plate[i][j]);
-        }
-        putchar('\n');
-    }
-    putchar('\n');
-
-    return;
-}
-
-void calc_temp(double plate[ROWS][COLS]) {
+/**
+ * @brief Calculates one time step of the heat diffusion.
+ * 
+ * @return The total absolute change in temperature across the plate.
+ */
+double calc_temp(double plate[ROWS][COLS]) {
     double tmp_plate[ROWS][COLS];
+    double delta_temp = 0;
     int i, j;
 
     /*  Copies the plate temperatures in another array in order to 
@@ -158,12 +159,17 @@ void calc_temp(double plate[ROWS][COLS]) {
                 tmp_plate[i+1][j] +
                 tmp_plate[i+1][j+1]
             ) ;
+
+            delta_temp += fabs(plate[i][j] - tmp_plate[i][j]);
         }
     }
 
-    return;
+    return delta_temp;
 }
 
+/**
+ * @brief Copies plate values into copied_plate array.
+ */
 void copy_plate(
     const double plate[ROWS][COLS],
     double copied_plate[ROWS][COLS]
@@ -179,20 +185,34 @@ void copy_plate(
     return;
 }
 
+/**
+ * @brief Normalizes the temperature plate to integer levels (0-9).
+ */
 void normalize_plate(
     const double plate[ROWS][COLS], int norm_plate[ROWS][COLS]
 ) {
-    double max_temp, min_temp, temp_step, threshold;
+    double max_temp, min_temp, temp_range;
     int i, j, heat_level;
 
     find_min_and_max(plate, &max_temp, &min_temp);
-    temp_step = (max_temp - min_temp) / HEAT_LEVELS;
+    temp_range = max_temp - min_temp;
+
     for (i = 0; i < ROWS; i++) {
         for(j = 0; j < COLS; j++) {
-            threshold = min_temp + temp_step;
-            for (heat_level = 0; plate[i][j] > threshold; heat_level++) {
-                threshold += temp_step;
+            /* In case every temperature in the plate is the same. */
+            if (temp_range == 0) {
+                norm_plate[i][j] = 0;
+                continue;
             }
+
+            heat_level = (int) (
+                ((plate[i][j] - min_temp) / temp_range) * HEAT_LEVELS
+            );
+
+            if (heat_level >= HEAT_LEVELS) {
+                heat_level = HEAT_LEVELS - 1;
+            }
+            
             norm_plate[i][j] = heat_level;
         }
     }
@@ -200,6 +220,9 @@ void normalize_plate(
     return;
 }
 
+/**
+ * @brief Calculates min and max of an array.
+ */
 void find_min_and_max(
     const double plate[ROWS][COLS], double * max, double * min
 ) {
@@ -218,20 +241,9 @@ void find_min_and_max(
     return;
 }
 
-void print_norm_plate(const int norm_plate[ROWS][COLS]) {
-    int i, j;
-
-    for (i = 0; i < ROWS; i++) {
-        for(j = 0; j < COLS; j++) {
-            printf(" %d ", norm_plate[i][j]);
-        }
-        putchar('\n');
-    }
-    putchar('\n');
-
-    return;
-}
-
+/**
+ * @brief Creates a histogram from the normalized plate data.
+ */
 void create_histogram(
     const int norm_plate[ROWS][COLS],
     int histogram[HEAT_LEVELS]
@@ -252,6 +264,45 @@ void create_histogram(
     return;
 }
 
+/**
+ * @brief Prints plate's temperature.
+ */
+void print_plate(const double plate[ROWS][COLS], int time) {
+    int i, j;
+
+    printf("\n || Time in seconds: %d ||\n", time);
+    putchar('\n');
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            printf("%6.2f ", plate[i][j]);
+        }
+        putchar('\n');
+    }
+    putchar('\n');
+
+    return;
+}
+
+/**
+ * @brief Prints plate with the normalized values.
+ */
+void print_norm_plate(const int norm_plate[ROWS][COLS]) {
+    int i, j;
+
+    for (i = 0; i < ROWS; i++) {
+        for(j = 0; j < COLS; j++) {
+            printf(" %d ", norm_plate[i][j]);
+        }
+        putchar('\n');
+    }
+    putchar('\n');
+
+    return;
+}
+
+/**
+ * @brief Prints histogram orizontal.
+ */
 void print_histogram(const int histogram[HEAT_LEVELS]) {
     int i, j;
 
@@ -264,4 +315,18 @@ void print_histogram(const int histogram[HEAT_LEVELS]) {
     }
 
     return;
+}
+
+/**
+ * @brief Get user's choice.
+ * 
+ * @warning Select positive integer.
+ */
+int get_user_timestep(void) {
+    int second;
+
+    puts("Select the second you want to see the plate temp infos.");
+    scanf("%d", &second);
+
+    return second;
 }
