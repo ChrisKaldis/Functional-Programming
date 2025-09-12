@@ -1,0 +1,160 @@
+/*******************************************************************************
+ *                                                                             *
+ *  @file   plate_heat_simulation.c                                            *
+ *  @author Christos Kaldis                                                    *
+ *  @date   12 Sept 2025                                                       *
+ *                                                                             *
+ *  @brief      Simulates heat distribution on a 2D metal plate.               *
+ *  @details    This program provides a numerical solution to the              *
+ *  2D heat equation to model the steady-state temperature distribution across *
+ *  a rectangular metal plate.                                                 *
+ *                                                                             *
+ ******************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define ROWS 10
+#define COLS 20
+
+#define TEMP_TOP 2.0
+#define TEMP_BOTTOM 3.0
+#define TEMP_LEFT 4.0
+#define TEMP_RIGHT -5.0
+#define TEMP_INNER 1.0
+
+#define SECONDS 1
+
+void init_plate(double plate[ROWS][COLS]);
+void init_row_plate(
+    double plate[ROWS][COLS], int row_index, 
+    double left_edge_temp, double inner_temp, double right_edge_temp
+);
+void print_plate(const double plate[ROWS][COLS], int time);
+void calc_temp(double plate[ROWS][COLS]);
+void copy_plate(
+    const double plate[ROWS][COLS], double copied_plate[ROWS][COLS]
+);
+
+
+int main(void) {
+    double plate_temp[ROWS][COLS];
+    int time = 0;
+
+    init_plate(plate_temp);
+    print_plate(plate_temp, time);
+    for (time = 1; time <= SECONDS; time++) {
+        calc_temp(plate_temp);
+        print_plate(plate_temp, time);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+void init_plate(double plate[ROWS][COLS]) {
+    double top_left_edge = (TEMP_LEFT + TEMP_TOP) / 2;
+    double top_right_edge = (TEMP_RIGHT + TEMP_TOP) / 2;
+    double bottom_left_edge = (TEMP_LEFT + TEMP_BOTTOM) / 2;
+    double bottom_right_edge = (TEMP_RIGHT + TEMP_BOTTOM) / 2;
+    int i;
+
+    /*  There is a minor performance overhead from function calls.
+        This for loop is small so we don't care but, usually in HPC you 
+        avoid function calls inside large loops, this way you sacrifice 
+        clarity for efficiency. */
+    for (i = 0; i < ROWS; i++) {
+        if (i == 0)
+            init_row_plate(
+                plate, i, top_left_edge, TEMP_TOP, top_right_edge
+            );
+        else if (i == ROWS - 1)
+            init_row_plate(
+                plate, i, bottom_left_edge, TEMP_BOTTOM, bottom_right_edge
+            );
+        else
+            init_row_plate(
+                plate, i, TEMP_LEFT, TEMP_INNER, TEMP_RIGHT
+            );
+    }
+    
+    return;
+}
+
+void init_row_plate(
+    double plate[ROWS][COLS],
+    int row_index, 
+    double left_edge_temp,
+    double inner_temp,
+    double right_edge_temp
+) {
+    int i;
+
+    for (i = 0; i < COLS; i++) {
+        if (i == 0)
+            plate[row_index][i] = left_edge_temp;
+        else if (i == COLS - 1)
+            plate[row_index][i] = right_edge_temp;
+        else
+            plate[row_index][i] = inner_temp;
+    }
+
+    return;
+}
+
+void print_plate(const double plate[ROWS][COLS], int time) {
+    int i, j;
+
+    printf(" || Time in seconds: %d ||\n", time);
+    putchar('\n');
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            printf("%6.2f ", plate[i][j]);
+        }
+        putchar('\n');
+    }
+    putchar('\n');
+
+    return;
+}
+
+void calc_temp(double plate[ROWS][COLS]) {
+    double tmp_plate[ROWS][COLS];
+    int i, j;
+
+    /*  Copies the plate temperatures in another array in order to 
+        create an array that holds the (t-1) values of the plate.  */
+    copy_plate(plate, tmp_plate);
+    /*  Calculates the temperature for the current state (t).  */
+    for (i = 1; i < ROWS - 1; i++) {
+        for (j = 1; j < COLS - 1; j++) {
+            plate[i][j] = 0.1 * (
+                tmp_plate[i-1][j-1] +
+                tmp_plate[i-1][j] +
+                tmp_plate[i-1][j+1] +
+                tmp_plate[i][j-1] +
+                2 * tmp_plate[i][j] +
+                tmp_plate[i][j+1] +
+                tmp_plate[i+1][j-1] +
+                tmp_plate[i+1][j] +
+                tmp_plate[i+1][j+1]
+            ) ;
+        }
+    }
+
+    return;
+}
+
+void copy_plate(
+    const double plate[ROWS][COLS],
+    double copied_plate[ROWS][COLS]
+) {
+    int i, j;
+
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            copied_plate[i][j] = plate[i][j];
+        }
+    }
+
+    return;
+}
