@@ -23,7 +23,9 @@
 #define TEMP_RIGHT -5.0
 #define TEMP_INNER 1.0
 
-#define SECONDS 1
+#define SECONDS 37
+
+#define HEAT_LEVELS 10
 
 void init_plate(double plate[ROWS][COLS]);
 void init_row_plate(
@@ -35,18 +37,28 @@ void calc_temp(double plate[ROWS][COLS]);
 void copy_plate(
     const double plate[ROWS][COLS], double copied_plate[ROWS][COLS]
 );
+void normalize_plate(
+    const double plate[ROWS][COLS], int norm_plate[ROWS][COLS]
+);
+void find_min_and_max(
+    const double plate[ROWS][COLS], double * max, double * min
+);
+void print_norm_plate(const int norm_plate[ROWS][COLS]);
 
 
 int main(void) {
     double plate_temp[ROWS][COLS];
+    int norm_plate_temp[ROWS][COLS];
     int time = 0;
 
     init_plate(plate_temp);
     print_plate(plate_temp, time);
     for (time = 1; time <= SECONDS; time++) {
         calc_temp(plate_temp);
-        print_plate(plate_temp, time);
     }
+    print_plate(plate_temp, time);
+    normalize_plate(plate_temp, norm_plate_temp);
+    print_norm_plate(norm_plate_temp);
 
     return EXIT_SUCCESS;
 }
@@ -155,6 +167,59 @@ void copy_plate(
             copied_plate[i][j] = plate[i][j];
         }
     }
+
+    return;
+}
+
+void normalize_plate(
+    const double plate[ROWS][COLS], int norm_plate[ROWS][COLS]
+) {
+    double max_temp, min_temp, temp_step, threshold;
+    int i, j, heat_level;
+
+    find_min_and_max(plate, &max_temp, &min_temp);
+    temp_step = (max_temp - min_temp) / HEAT_LEVELS;
+    for (i = 0; i < ROWS; i++) {
+        for(j = 0; j < COLS; j++) {
+            threshold = min_temp + temp_step;
+            for (heat_level = 0; plate[i][j] > threshold; heat_level++) {
+                threshold += temp_step;
+            }
+            norm_plate[i][j] = heat_level;
+        }
+    }
+
+    return;
+}
+
+void find_min_and_max(
+    const double plate[ROWS][COLS], double * max, double * min
+) {
+    int i, j;
+
+    *min = *max = plate[0][0];
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            if (*max < plate[i][j])
+                *max = plate[i][j];
+            else if (*min > plate[i][j])
+                *min = plate[i][j];
+        }
+    }
+
+    return;
+}
+
+void print_norm_plate(const int norm_plate[ROWS][COLS]) {
+    int i, j;
+
+    for (i = 0; i < ROWS; i++) {
+        for(j = 0; j < COLS; j++) {
+            printf(" %d ", norm_plate[i][j]);
+        }
+        putchar('\n');
+    }
+    putchar('\n');
 
     return;
 }
