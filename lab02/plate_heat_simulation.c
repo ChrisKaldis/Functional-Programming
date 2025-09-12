@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define ROWS 10
 #define COLS 20
@@ -44,11 +45,16 @@ void find_min_and_max(
     const double plate[ROWS][COLS], double * max, double * min
 );
 void print_norm_plate(const int norm_plate[ROWS][COLS]);
+void create_histogram(
+    const int norm_plate[ROWS][COLS], int histogram[HEAT_LEVELS]
+);
+void print_histogram(const int histogram[HEAT_LEVELS]);
 
 
 int main(void) {
     double plate_temp[ROWS][COLS];
     int norm_plate_temp[ROWS][COLS];
+    int histogram[HEAT_LEVELS];
     int time = 0;
 
     init_plate(plate_temp);
@@ -59,6 +65,8 @@ int main(void) {
     print_plate(plate_temp, time);
     normalize_plate(plate_temp, norm_plate_temp);
     print_norm_plate(norm_plate_temp);
+    create_histogram(norm_plate_temp, histogram);
+    print_histogram(histogram);
 
     return EXIT_SUCCESS;
 }
@@ -220,6 +228,40 @@ void print_norm_plate(const int norm_plate[ROWS][COLS]) {
         putchar('\n');
     }
     putchar('\n');
+
+    return;
+}
+
+void create_histogram(
+    const int norm_plate[ROWS][COLS],
+    int histogram[HEAT_LEVELS]
+) {
+    int i, j, index;
+
+    for (i = 0; i < HEAT_LEVELS; i++) {
+        histogram[i] = 0;
+    }
+
+    for (i = 0; i < ROWS; i++) {
+        for (j = 0; j < COLS; j++) {
+            index = norm_plate[i][j];
+            histogram[index]++;
+        }
+    }
+
+    return;
+}
+
+void print_histogram(const int histogram[HEAT_LEVELS]) {
+    int i, j;
+
+    for (i = 0; i < HEAT_LEVELS; i++) {
+        printf("%d: ", i);
+        for (j = 0; j < histogram[i]; j++) {
+            putchar('#');
+        }
+        putchar('\n');
+    }
 
     return;
 }
