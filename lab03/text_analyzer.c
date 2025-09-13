@@ -2,13 +2,14 @@
  *                                                                             *
  *  @file   text_analyzer.c                                                    *
  *  @author Christos Kaldis                                                    *
- *  @date   12 Sept 2025                                                       *
+ *  @date   13 Sept 2025                                                       *
  *  @brief  Perform basic edit and stats calculation in a text.                *
  *                                                                             *
  ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define INSERT_TEXT 1
 #define INSERT_DICTIONARY 2
@@ -17,22 +18,29 @@
 #define CALCULATE_STATS 5
 #define EXIT 6
 
+#define WORDS 10
+#define WORD_LENGTH 20
+
 int get_choice(void);
-void insert_text(void);
+int insert_text(char text_words[WORDS][WORD_LENGTH+1]);
 void insert_dictionary(void);
 void correct_text(void);
 void save_text(void);
 void calculate_stats(void);
 
+void print_text(char text[WORDS][WORD_LENGTH+1], int count);
+
 
 int main(void) {
-    int choice;
+    char text_words[WORDS][WORD_LENGTH+1];
+    int choice, text_length = 0;
 
     while ((choice = get_choice()) != EXIT) {
         switch (choice)
         {
         case INSERT_TEXT:
-            insert_text();
+            text_length = insert_text(text_words);
+            print_text(text_words, text_length);
             break;
         case INSERT_DICTIONARY:
             insert_dictionary();
@@ -77,10 +85,45 @@ int get_choice(void) {
     return choice;
 }
 
-void insert_text(void) {
-    puts("Insert text.");
+int insert_text(char text_words[WORDS][WORD_LENGTH+1]) {
+    const char end_word[] = "*T*E*L*O*S*";
+    const char delimiters[] = " \t\n\r";
+    char line_buffer[256];
+    static int word_idx = 0;
+    int finished = 0;
 
-    return;
+    puts("Give a words, write *T*E*L*O*S* when you finish.");
+
+    while (word_idx < WORDS && !finished) {
+        if (fgets(line_buffer, sizeof(line_buffer), stdin) == NULL) {
+            break;
+        }
+
+        char *token = strtok(line_buffer, delimiters);
+        while (token != NULL) {
+            if (strcmp(token, end_word) == 0) {
+                finished = 1;
+                break;
+            }
+
+            if (strlen(token) <= WORD_LENGTH) {
+                strcpy(text_words[word_idx++], token);
+            }
+            else {
+                printf("Word:%s is too big (max %d).\n", token, WORD_LENGTH);
+            }
+
+            if (word_idx >= WORDS) {
+                printf("Text array is full (%d words).\n", WORDS);
+                finished = 1;
+                break;
+            }
+
+            token = strtok(NULL, delimiters);
+        }
+    }
+
+    return word_idx;
 }
 
 void insert_dictionary(void) {
@@ -103,6 +146,16 @@ void save_text(void) {
 
 void calculate_stats(void) {
     puts("Calculate stats");
+
+    return;
+}
+
+void print_text(char text_words[WORDS][WORD_LENGTH + 1], int count) {
+    int i;
+
+    for (i = 0; i < count; i++) {
+        printf("%d: %s\n", i + 1, text_words[i]);
+    }
 
     return;
 }
