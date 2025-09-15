@@ -2,7 +2,7 @@
  *                                                                             *
  *  @file   text_analyzer.c                                                    *
  *  @author Christos Kaldis                                                    *
- *  @date   13 Sept 2025                                                       *
+ *  @date   14 Sept 2025                                                       *
  *  @brief  Perform basic edit and stats calculation in a text.                *
  *                                                                             *
  ******************************************************************************/
@@ -18,32 +18,42 @@
 #define CALCULATE_STATS 5
 #define EXIT 6
 
-#define WORDS 10
+#define WORDS 30000
 #define WORD_LENGTH 20
+#define FILENAME_MAX_LEN 100
+#define DICTIONARY_SIZE 1000
 
 int get_choice(void);
+int get_int(void);
+char get_char(void);
 int insert_text(char text_words[WORDS][WORD_LENGTH+1]);
-void insert_dictionary(void);
+int insert_dictionary(char dictionary[DICTIONARY_SIZE][WORD_LENGTH+1]);
 void correct_text(void);
 void save_text(void);
 void calculate_stats(void);
 
+int display_insert_options(void);
+int process_input_stream(
+    FILE *stream, char text_words[WORDS][WORD_LENGTH + 1], int is_terminal
+);
 void print_text(char text[WORDS][WORD_LENGTH+1], int count);
 
 
 int main(void) {
     char text_words[WORDS][WORD_LENGTH+1];
-    int choice, text_length = 0;
+    char dictionary[DICTIONARY_SIZE][WORD_LENGTH + 1];
+    int choice;
+    int text_length = 0;
+    int dictionary_length = 0;
 
     while ((choice = get_choice()) != EXIT) {
         switch (choice)
         {
         case INSERT_TEXT:
             text_length = insert_text(text_words);
-            print_text(text_words, text_length);
             break;
         case INSERT_DICTIONARY:
-            insert_dictionary();
+            dictionary_length = insert_dictionary(dictionary);
             break;
         case CORRECT_TEXT:
             correct_text();
@@ -74,62 +84,71 @@ int get_choice(void) {
     printf("%d) Calculate text stats\t", CALCULATE_STATS);
     printf("%d) Exit\n", EXIT);
 
-    /* Check if user gave a number. */
-    if (scanf("%d", &choice) != 1) {
-        choice = 0;
-    }
-    /* Clear input buffer. */
-    while (getchar() != '\n')
-        ;
+    choice = get_int();
     
     return choice;
 }
 
 int insert_text(char text_words[WORDS][WORD_LENGTH+1]) {
-    const char end_word[] = "*T*E*L*O*S*";
-    const char delimiters[] = " \t\n\r";
-    char line_buffer[256];
-    static int word_idx = 0;
-    int finished = 0;
+    char filename[FILENAME_MAX_LEN];
+    FILE *file_ptr;
+    int choice;
+    int word_count = 0;
+    char print_choice;
 
-    puts("Give a words, write *T*E*L*O*S* when you finish.");
+    choice = display_insert_options();
 
-    while (word_idx < WORDS && !finished) {
-        if (fgets(line_buffer, sizeof(line_buffer), stdin) == NULL) {
+    switch (choice)
+    {
+    case 1:
+        word_count = process_input_stream(stdin, text_words, 1);
+        break;
+    case 2:
+        {
+            printf("Enter the filename: ");
+            /* assumes no spaces in filename. */
+            if (scanf("%99s", filename) != 1) {
+                puts("Invalid filename input.");
+                break;
+            }
+            while (getchar() != '\n')
+                ;
+
+            file_ptr = fopen(filename, "r");
+            if (file_ptr == NULL) {
+                perror("Error opening file");
+                break;
+            }
+
+            printf("Reading from file '%s'...\n", filename);
+            word_count = process_input_stream(file_ptr, text_words, 0);
+            fclose(file_ptr);
             break;
         }
+    case 3:
+        break;
+    default:
+        puts("Invalid option.");
+        break;
+    }
 
-        char *token = strtok(line_buffer, delimiters);
-        while (token != NULL) {
-            if (strcmp(token, end_word) == 0) {
-                finished = 1;
-                break;
-            }
+    if (word_count > 0) {
+        printf("\nInsertion completed. %d words were added.\n", word_count);
+        printf("Do you want to print the text? (y/n): ");
+        print_choice = get_char();
 
-            if (strlen(token) <= WORD_LENGTH) {
-                strcpy(text_words[word_idx++], token);
-            }
-            else {
-                printf("Word:%s is too big (max %d).\n", token, WORD_LENGTH);
-            }
-
-            if (word_idx >= WORDS) {
-                printf("Text array is full (%d words).\n", WORDS);
-                finished = 1;
-                break;
-            }
-
-            token = strtok(NULL, delimiters);
+        if (print_choice == 'y' || print_choice == 'Y') {
+            print_text(text_words, word_count);
         }
     }
 
-    return word_idx;
+    return word_count;
 }
 
-void insert_dictionary(void) {
-    puts("Insert dictionary");
+int insert_dictionary(char dictionary[DICTIONARY_SIZE][WORD_LENGTH+1]) {
+    int word_count = 0;
 
-    return;
+    return word_count;
 }
 
 void correct_text(void) {
@@ -150,6 +169,62 @@ void calculate_stats(void) {
     return;
 }
 
+int display_insert_options(void) {
+    int option;
+
+    puts("\n1) Insert words from terminal.");
+    puts("2) Insert words from file.");
+    puts("3) Return to the main menu.");
+    
+    option = get_int();
+
+    return option;
+}
+
+int process_input_stream(
+    FILE *stream, char text_words[WORDS][WORD_LENGTH + 1], int is_terminal
+) {
+    const char end_word[] = "*T*E*L*O*S*";
+    const char delimiters[] = " \t\n\r";
+    char line_buffer[256];
+    int word_idx = 0;
+    int finished = 0;
+
+    if (is_terminal) {
+        puts("Give words, write *T*E*L*O*S* when you finish.");
+    }
+
+    while (word_idx < WORDS && !finished && fgets(line_buffer, sizeof(line_buffer), stream) != NULL) {
+        char *token = strtok(line_buffer, delimiters);
+        while (token != NULL) {
+            /* Check for end word only if input is from terminal. */
+            if (is_terminal && strcmp(token, end_word) == 0) {
+                finished = 1;
+                break;
+            }
+
+            /* Store the word only if it fits in memory. */
+            if (strlen(token) <= WORD_LENGTH) {
+                strcpy(text_words[word_idx++], token);
+            }
+            else {
+                printf("Word:'%s' is too big (max %d) and was skipped.\n", token, WORD_LENGTH);
+            }
+
+            /* Check if the array is full after the last insertion. */
+            if (word_idx >= WORDS) {
+                printf("Text array is full (%d words).\n", WORDS);
+                finished = 1;
+                break;
+            }
+
+            token = strtok(NULL, delimiters);
+        }
+    }
+
+    return word_idx;
+}
+
 void print_text(char text_words[WORDS][WORD_LENGTH + 1], int count) {
     int i;
 
@@ -158,4 +233,30 @@ void print_text(char text_words[WORDS][WORD_LENGTH + 1], int count) {
     }
 
     return;
+}
+
+int get_int(void) {
+    int choice;
+
+    /* Check if user didn't gave a number. */
+    if (scanf("%d", &choice) != 1)
+        choice = 0;
+
+    /* Clear input buffer in order to be ready for the next scanf(). */
+    while (getchar() != '\n')
+        ;
+    
+    return choice;
+}
+
+char get_char(void) {
+    char choice;
+
+    if (scanf(" %c", &choice) != 1)
+        choice = 'n';
+
+    while (getchar() != '\n')
+        ;
+    
+    return choice;
 }
