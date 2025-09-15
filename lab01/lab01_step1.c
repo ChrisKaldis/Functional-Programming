@@ -1,11 +1,12 @@
 /*******************************************************************************
  *                                                                             *
- *  @file   step1.c                                                            *
+ *  @file   lab01_step1.c                                                            *
  *  @author Christos Kaldis                                                    *
  *  @date   08 Sept 2025                                                       *
  *  @brief  A utility to print ASCII art squares of various sizes.             *
  *                                                                             *
- *                                                                             *
+ *  Square is the first shape of the four that are implementd in the           *
+ *  ascii_shapes.c file.                                                       *
  *                                                                             *
  ******************************************************************************/
 
@@ -35,6 +36,7 @@ int main() {
 
 /**
  * @brief Prints a line filled with the current character. 
+ * 
  * @param len The length of the line.
  * @param fill_char The character to fill the line with.
  */
@@ -51,6 +53,7 @@ void print_filled_line(int len, char fill_char) {
 
 /**
  * @brief Prints a line with a specific character on the edges and another inside.
+ * 
  * @param len The length of the line.
  * @param edge_char The character for the edges.
  * @param inner_char The character to fill the space between the edges.
@@ -58,7 +61,7 @@ void print_filled_line(int len, char fill_char) {
 void print_hollow_line(int len, char edge_char, char inner_char) {
     int i;
 
-    for (i = 0; i < len; ++i){
+    for (i = 0; i < len; ++i) {
         if (i == 0 || i == len-1)
             putchar(edge_char);
         else
@@ -71,6 +74,7 @@ void print_hollow_line(int len, char edge_char, char inner_char) {
 
 /**
  * @brief Prints a line with different characters in the edges, inner and center.
+ * 
  * @param len The length of the line.
  * @param edge_char The character for the edges.
  * @param inner_char The character for the non-center, non-edge parts.
@@ -94,10 +98,13 @@ void print_center_line(int len, char edge_char, char inner_char, char center_cha
 
 /**
  * @brief Checks if an index is at the center of a given length.
+ * 
  * @param index The current index to check (0-based).
  * @param length The total length of the line.
+ * 
  * @return 1 if the index is a center position, otherwise 0.
- * @note Works for both odd (one center) and even (two centers).
+ * 
+ * @note Works for both odd (one center) and even (two centers) lengths.
  */
 int is_at_center(int index, int length) {
     int center_position = 0;
@@ -109,7 +116,8 @@ int is_at_center(int index, int length) {
 }
 
 /**
- * @brief Prints a square
+ * @brief Prints a square.
+ * 
  * @param size The length of the square's side.
  */
 void print_square(int size) {

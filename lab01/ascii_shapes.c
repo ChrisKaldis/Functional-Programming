@@ -2,7 +2,7 @@
  *                                                                             *
  *  @file   ascii_shapes.c                                                     *
  *  @author Christos Kaldis                                                    *
- *  @date   11 Sept 2025                                                       *
+ *  @date   15 Sept 2025                                                       *
  *  @brief  A utility to print ASCII art shapes of various chars and sizes.    *
  *                                                                             *
  ******************************************************************************/
@@ -31,31 +31,43 @@ void print_equilateral_triangle(int size, char ch);
 
 void print_filled_line(int len, char fill_char, int new_line);
 void print_hollow_line(int len, char edge_char, char inner_char);
-void print_center_line(int len, char edge_char, char inner_char, char center_char);
+void print_center_line(
+    int len, char edge_char, char inner_char, char center_char
+);
 int distance_from_center(int index, int length);
 
 
 int main(void) {
-    int choice, size;
+    int choice, shape_size;
     char shape_ch;
 
     while ((choice = get_shape_choice()) != EXIT)
     {
-        size = get_shape_size();
+        if (choice == 0) {
+            puts("Invalid choice. Please enter a number from the menu.");
+            continue;
+        }
+
+        shape_size = get_shape_size();
+        if (shape_size == 0) {
+            puts("Invalid size. Please enter a positive number.");
+            continue;
+        }
+
         shape_ch = get_shape_char();
         switch (choice)
         {
         case SQUARE:
-            print_square(size, shape_ch);
+            print_square(shape_size, shape_ch);
             break;
         case RHOMBUS:
-            print_rhombus(size, shape_ch);
+            print_rhombus(shape_size, shape_ch);
             break;
         case RIGHT_TRIANGLE:
-            print_right_triangle(size, shape_ch);
+            print_right_triangle(shape_size, shape_ch);
             break;
         case EQUILATERAL_TRIANGLE:
-            print_equilateral_triangle(size, shape_ch);
+            print_equilateral_triangle(shape_size, shape_ch);
             break;
         default:
             puts("Invalid shape number.");
@@ -76,7 +88,14 @@ int get_shape_choice(void) {
 
     puts("\nSelect shape (-1 for exit).");
     puts("1) Square\t\t2) Rhombus\n3) Right Triangle\t4) Equilateral Triangle");
-    scanf("%d", &shape);
+    
+    /* Check if user gave a number, set an invalid number. */
+    if (scanf("%d", &shape) != 1)
+        shape = 0;
+    
+    /* Clear the input buffer to handle subsequent inputs correctly. */
+    while (getchar() != '\n')
+        ;
 
     return shape;
 }
@@ -89,12 +108,18 @@ int get_shape_choice(void) {
 int get_shape_size(void) {
     int size;
 
-    puts("\nGive the size of the selected shape.");
-    scanf(" %d", &size);
+    puts("\nGive the size of the selected shape (positive int).");
 
-    return size;
+    /* Check if user gave a number. */
+    if (scanf("%d", &size) != 1)
+        size = 0;
+
+    /* Clear the input buffer to handle subsequent inputs correctly. */
+    while (getchar() != '\n')
+        ;
+
+    return abs(size);
 }
-
 
 /**
  * @brief Prompts the user to enter a character for drawing the shape.
@@ -105,7 +130,14 @@ char get_shape_char(void) {
     char ch;
 
     puts("\nGive the character the shape will be printed.");
-    scanf(" %c", &ch);
+
+    /* Check if user gave a character. */
+    if (scanf(" %c", &ch) != 1)
+        ch = '*';
+
+    /* Clear the input buffer to handle subsequent inputs correctly. */
+    while (getchar() != '\n')
+        ;
 
     return ch;
 }
@@ -138,7 +170,8 @@ void print_square(int size, char ch) {
  * @details The rhombus is symmetric around its horizontal center. 
  * The center row is also marked with a cross pattern.
  * 
- * @param size The height of the rhombus (must be an odd number for best results).
+ * @param size The height of the rhombus (must be an odd number for better
+ * results).
  * @param ch The character to use for the rhombus's outline.
  */
 void print_rhombus(int size, char ch) {
@@ -160,8 +193,7 @@ void print_rhombus(int size, char ch) {
             outer_line_size--;
             inner_line_size += 2;
         }
-        /* Start the reverse lengths calculation after passing the center. */
-        else if (i >= size/2) {
+        else if (i >= size / 2) {
             outer_line_size++;
             inner_line_size -= 2;
         }
@@ -221,12 +253,12 @@ void print_equilateral_triangle(int size, char ch) {
  * 
  * @param len The length of the line.
  * @param fill_char The character to fill the line with.
- * @param new_line If it's non zero value it changes line.
+ * @param new_line If it's non zero value it changes line in the end.
  */
 void print_filled_line(int len, char fill_char, int new_line) {
     int i;
 
-    for (i = 0; i < len; ++i) {
+    for (i = 0; i < len; i++) {
         putchar(fill_char);
     }
     if (new_line)
@@ -236,7 +268,8 @@ void print_filled_line(int len, char fill_char, int new_line) {
 }
 
 /**
- * @brief Prints a line with a specific character on the edges and another inside.
+ * @brief Prints a line with a specific character on the edges and another on
+ * the inside.
  * 
  * @param len The length of the line.
  * @param edge_char The character for the edges.
@@ -245,7 +278,7 @@ void print_filled_line(int len, char fill_char, int new_line) {
 void print_hollow_line(int len, char edge_char, char inner_char) {
     int i;
 
-    for (i = 0; i < len; ++i){
+    for (i = 0; i < len; i++) {
         if (i == 0 || i == len-1)
             putchar(edge_char);
         else
@@ -257,7 +290,8 @@ void print_hollow_line(int len, char edge_char, char inner_char) {
 }
 
 /**
- * @brief Prints a line with different characters in the edges, inner and center.
+ * @brief Prints a line with different characters in the edges, inner and 
+ * center.
  * 
  * @param len The length of the line.
  * @param edge_char The character for the edges.
@@ -267,7 +301,7 @@ void print_hollow_line(int len, char edge_char, char inner_char) {
 void print_center_line(int len, char edge_char, char inner_char, char center_char) {
     int i;
 
-    for (i = 0; i < len; ++i) {
+    for (i = 0; i < len; i++) {
         if (i == 0 || i == len-1)
             putchar(edge_char);
         else if (distance_from_center(i, len) == 0)
@@ -281,7 +315,8 @@ void print_center_line(int len, char edge_char, char inner_char, char center_cha
 }
 
 /**
- * @brief Calculates the signed, symmetric distance from the center of a sequence.
+ * @brief Calculates the signed, symmetric distance from the center of a 
+ * sequence.
  * @details For a sequence of a given length, this function calculates an
  * index's distance from the middle. For even lengths, the two
  * center elements are both considered distance 0.
