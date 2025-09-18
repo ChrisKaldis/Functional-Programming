@@ -2,7 +2,7 @@
  *                                                                             *
  *  @file   text_analyzer.c                                                    *
  *  @author Christos Kaldis                                                    *
- *  @date   14 Sept 2025                                                       *
+ *  @date   18 Sept 2025                                                       *
  *  @brief  Perform basic edit and stats calculation in a text.                *
  *                                                                             *
  ******************************************************************************/
@@ -36,7 +36,7 @@ int display_insert_options(void);
 int process_input_stream(
     FILE *stream, char text_words[WORDS][WORD_LENGTH + 1], int is_terminal
 );
-void print_text(char text[WORDS][WORD_LENGTH+1], int count);
+void print_text(char text[][WORD_LENGTH+1], int count);
 
 
 int main(void) {
@@ -146,7 +146,58 @@ int insert_text(char text_words[WORDS][WORD_LENGTH+1]) {
 }
 
 int insert_dictionary(char dictionary[DICTIONARY_SIZE][WORD_LENGTH+1]) {
+    char filename[FILENAME_MAX_LEN];
+    FILE *file_ptr;
+    char line_buffer[WORD_LENGTH + 2];
     int word_count = 0;
+    char print_choice;
+
+    puts("Enter the dictionary filename: ");
+    if (scanf("%99s", filename) != 1) {
+        puts("Invalid filename input.");
+        while (getchar() != '\n')
+            ;
+        return word_count;
+    }
+    while (getchar() != '\n')
+        ;
+    
+    file_ptr = fopen(filename, "r");
+    if (file_ptr == NULL) {
+        perror("Error opening dictionary file");
+        
+        return word_count;
+    }
+
+    printf("Reading from dictionary file '%s'...\n", filename);
+
+    while (word_count < DICTIONARY_SIZE && fgets(line_buffer, sizeof(line_buffer), file_ptr) != NULL) {
+        line_buffer[strcspn(line_buffer, "\n\r")] = '\0';
+
+        if (strlen(line_buffer) > 0 && strlen(line_buffer) <= WORD_LENGTH) {
+            strcpy(dictionary[word_count], line_buffer);
+            word_count++;
+        } else if (strlen(line_buffer) > WORD_LENGTH) {
+            printf("Warning: Word '%s' is too long (max %d) and was skipped.\n", line_buffer, WORD_LENGTH);
+        }
+    }
+
+    if (word_count >= DICTIONARY_SIZE) {
+        printf("Dictionary array is full (%d words).\n", DICTIONARY_SIZE);
+    }
+
+    fclose(file_ptr);
+    if (word_count > 0) {
+        printf("\nDictionary loaded successfully. %d words were added.\n", word_count);
+        printf("Do you want to print the dictionary? (y/n): ");
+        print_choice = get_char();
+
+        if (print_choice == 'y' || print_choice == 'Y') {
+            print_text(dictionary, word_count);
+        }
+    } else {
+        puts("\nNo words were added to the dictionary.");
+    }
 
     return word_count;
 }
@@ -225,7 +276,7 @@ int process_input_stream(
     return word_idx;
 }
 
-void print_text(char text_words[WORDS][WORD_LENGTH + 1], int count) {
+void print_text(char text_words[][WORD_LENGTH + 1], int count) {
     int i;
 
     for (i = 0; i < count; i++) {
